@@ -404,13 +404,14 @@ public partial class MainWindow : Window
     /// <summary>A native Win32 menu: Windows 11 styling for free, and none of the focus quirks of WPF popups in a no-activate window.</summary>
     private void ShowContextMenu()
     {
-        const int StartupItem = 1, ExitItem = 2;
+        const int StartupItem = 1, ExitItem = 2, PartyItem = 3;
 
         IntPtr menu = NativeMethods.CreatePopupMenu();
         if (menu == IntPtr.Zero)
             return;
         try
         {
+            NativeMethods.AppendMenu(menu, NativeMethods.MF_STRING | (_partyMode ? NativeMethods.MF_CHECKED : 0), PartyItem, "Party mode");
             NativeMethods.AppendMenu(menu, NativeMethods.MF_STRING | (StartupManager.IsEnabled ? NativeMethods.MF_CHECKED : 0), StartupItem, "Start with Windows");
             NativeMethods.AppendMenu(menu, NativeMethods.MF_SEPARATOR, 0, null);
             NativeMethods.AppendMenu(menu, NativeMethods.MF_STRING, ExitItem, "Exit Dynamic Island");
@@ -425,6 +426,9 @@ public partial class MainWindow : Window
 
             switch (command)
             {
+                case PartyItem:
+                    ToggleParty();
+                    break;
                 case StartupItem:
                     StartupManager.IsEnabled = !StartupManager.IsEnabled;
                     break;
@@ -494,11 +498,13 @@ public partial class MainWindow : Window
         NextButton.IsEnabled = info.CanGoNext;
 
         // Tint the equalizer and progress bar with the cover's colour, with a smooth cross-fade between tracks.
+        // Party mode owns the accent while it's on, so leave its rainbow alone and just remember the target.
         Color accent = info.ArtworkAccent ?? Colors.White;
         if (accent != _accentTarget)
         {
             _accentTarget = accent;
-            _accentBrush.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(accent, TimeSpan.FromMilliseconds(450)));
+            if (!_partyMode)
+                _accentBrush.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(accent, TimeSpan.FromMilliseconds(450)));
         }
     }
 
